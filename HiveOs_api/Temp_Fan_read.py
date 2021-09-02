@@ -112,8 +112,8 @@ def main():
     global last_time
     cHive = Hive(sd.get_token())
     while True:
-        if time.time - last_time > 180:
-            last_time = time.time
+        if time.time() - last_time > 180:
+            last_time = time.time()
             try:
                 data = cHive.get_worker_info(sd.get_farm_id(),sd.get_worker_id())["miners_stats"]["hashrates"][0]
                 fan_perc = data['fans']
