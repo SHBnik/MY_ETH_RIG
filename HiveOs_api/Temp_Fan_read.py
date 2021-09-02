@@ -83,11 +83,7 @@ def Search_for_fan_serial_port():
         # http://pyserial.sourceforge.net/pyserial_api.html#serial.Serial.flushInput
         test_serial.flushInput()
         test_serial.setDTR(True)
-        # test_serial.close()
-        # test_serial.open()
-        # time.sleep(2)
-        # test_serial.close()
-        # test_serial.open()
+
 
         time_last = time.time()
         while True:
@@ -110,13 +106,13 @@ def Search_for_fan_serial_port():
 
 def check_temp(fan,temp):
     global fans_flag,fan_serial
-    for index,fan_value in enumerate(fan):
+    for index,fan_value,temp_value in enumerate(zip(fan,temp)):
         if not fans_flag[index]:
             if fan_value > 60:
                 fan_serial.write('%d,1\n'%index)
                 fans_flag[index] = 1
         else:
-            if fan_value < 43:
+            if fan_value < 43 and temp_value < 65:
                 fan_serial.write('%d,0\n'%index)
                 fans_flag[index] = 0
         
@@ -126,7 +122,7 @@ def main():
     global last_time
     cHive = Hive(sd.get_token())
     while True:
-        if time.time() - last_time > 180:
+        if time.time() - last_time > 60:
             last_time = time.time()
             try:
                 data = cHive.get_worker_info(sd.get_farm_id(),sd.get_worker_id())["miners_stats"]["hashrates"][0]
