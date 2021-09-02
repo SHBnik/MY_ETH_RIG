@@ -11,7 +11,7 @@ import time
 fan_serial = None
 fans_flag = [0,0,0,0,0,0,0,0,0,0,0,0]
 
-
+last_time = 0
 
 
 class Hive(object):
@@ -109,6 +109,7 @@ def check_temp(fan,temp):
 
 
 def main():
+    global last_time
     cHive = Hive(sd.get_token())
     while True:
         if time.time - last_time > 180:
