@@ -76,11 +76,18 @@ def Search_for_fan_serial_port():
             xonxoff=0,
             rtscts=0
         )
-        test_serial.close()
-        test_serial.open()
-        time.sleep(2)
-        test_serial.close()
-        test_serial.open()
+        # Toggle DTR to reset Arduino
+        test_serial.setDTR(False)
+        sleep(1)
+        # toss any data already received, see
+        # http://pyserial.sourceforge.net/pyserial_api.html#serial.Serial.flushInput
+        test_serial.flushInput()
+        test_serial.setDTR(True)
+        # test_serial.close()
+        # test_serial.open()
+        # time.sleep(2)
+        # test_serial.close()
+        # test_serial.open()
 
         time_last = time.time()
         while True:
