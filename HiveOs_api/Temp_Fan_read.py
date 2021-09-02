@@ -108,7 +108,7 @@ def check_temp(fan,temp):
     global fans_flag,fan_serial
     for index,fan_value,temp_value in enumerate(zip(fan,temp)):
         if not fans_flag[index]:
-            if fan_value > 60:
+            if fan_value > 60 or temp_value > 67:
                 fan_serial.write('%d,1\n'%index)
                 fans_flag[index] = 1
         else:
