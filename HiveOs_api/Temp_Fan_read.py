@@ -71,14 +71,21 @@ def Search_for_fan_serial_port():
     for port in available_ports:
         test_serial = serial.Serial(
             port = port[0],
-            baudrate = 9600
+            baudrate = 9600,
+            timeout=1,
+            xonxoff=0,
+            rtscts=0
         )
-        # test_serial.close()
-        # test_serial.open()
+        test_serial.close()
+        test_serial.open()
+        time.sleep(2)
+        test_serial.close()
+        test_serial.open()
+
         time_last = time.time()
         while True:
             if test_serial.inWaiting():
-                text = test_serial.readline()#.decode('utf-8')
+                text = test_serial.readline().decode('utf-8')
                 if text.find('Arduino ON') != -1:
                     fan_serial = test_serial
                     print('!!!arduino port found on port %s!!!'%port[0])
@@ -104,7 +111,7 @@ def check_temp(fan,temp):
         else:
             if fan_value < 43:
                 fan_serial.write('%d,0\n'%index)
-                fans_flag[index] = 1
+                fans_flag[index] = 0
         
 
 
