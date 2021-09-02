@@ -73,8 +73,8 @@ def Search_for_fan_serial_port():
             port = port[0],
             baudrate = 9600
         )
-        test_serial.close()
-        test_serial.open()
+        # test_serial.close()
+        # test_serial.open()
         time_last = time.time()
         while True:
             if test_serial.inWaiting():
