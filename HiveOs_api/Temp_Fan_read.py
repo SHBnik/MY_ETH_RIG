@@ -67,8 +67,12 @@ class Hive(object):
 
 def Search_for_fan_serial_port():
     global fan_serial
+    port_found_flag = False
     available_ports = [tuple(p) for p in list(serial.tools.list_ports.comports())]
     for port in available_ports:
+        if port_found_flag:
+            break
+
         test_serial = serial.Serial(
             port = port[0],
             baudrate = 9600,
@@ -79,8 +83,6 @@ def Search_for_fan_serial_port():
         # Toggle DTR to reset Arduino
         test_serial.setDTR(False)
         sleep(1)
-        # toss any data already received, see
-        # http://pyserial.sourceforge.net/pyserial_api.html#serial.Serial.flushInput
         test_serial.flushInput()
         test_serial.setDTR(True)
 
@@ -92,6 +94,7 @@ def Search_for_fan_serial_port():
                 if text.find('Arduino ON') != -1:
                     fan_serial = test_serial
                     print('!!!arduino port found on port %s!!!'%port[0])
+                    port_found_flag = True
                     break
                 else:pass
 
@@ -106,13 +109,13 @@ def Search_for_fan_serial_port():
 
 def check_temp(fan,temp):
     global fans_flag,fan_serial
-    for index,fan_value,temp_value in enumerate(zip(fan,temp)):
+    for index,(fan_value,temp_value) in enumerate(zip(fan,temp)):
         if not fans_flag[index]:
             if fan_value > 60 or temp_value > 67:
                 fan_serial.write('%d,1\n'%index)
                 fans_flag[index] = 1
         else:
-            if fan_value < 43 and temp_value < 65:
+            if fan_value < 50 and temp_value < 70:
                 fan_serial.write('%d,0\n'%index)
                 fans_flag[index] = 0
         
@@ -125,9 +128,11 @@ def main():
         if time.time() - last_time > 60:
             last_time = time.time()
             try:
-                data = cHive.get_worker_info(sd.get_farm_id(),sd.get_worker_id())["miners_stats"]["hashrates"][0]
-                fan_perc = data['fans']
-                graphic_temp = data['temps']
+                data = cHive.get_worker_info(sd.get_farm_id(),sd.get_worker_id())["miners_stats"]["hashrates"]
+                data_SHB = data[0]
+                data_SHN = data[1]
+                fan_perc = data_SHN['fans'] + data_SHB['fans']
+                graphic_temp = data_SHN['temps'] + data_SHB['temps']
                 print(fan_perc,graphic_temp)
                 check_temp(fan_perc,graphic_temp)
             except Exception as e:
