@@ -7,3 +7,5 @@ def get_farm_id():
 def get_worker_id():
     return 'WORKER ID'
     
+def get_blynk_token():
+    return 'BLYNK TOKEN'

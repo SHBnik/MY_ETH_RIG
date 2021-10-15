@@ -1,3 +1,4 @@
+import BlynkLib
 from requests import request, exceptions
 from time import sleep
 import json
@@ -10,8 +11,17 @@ import time
 
 fan_serial = None
 fans_flag = [0,0,0,0,0,0,0,0,0,0,0,0]
-
+fans_force_flag = [0,0,0,0,0,0,0,0,0,0,0,0]
 last_time = 0
+
+blynk = BlynkLib.Blynk(sd.get_blynk_token())
+blynk_Fan = [0,1,2,3,4,5,6,7,8,9,10,11]
+Power = 12
+blynk_Temp = [13,14,15,16,17,18,19,20,21,22,23,24]
+blynk_Perc = [25,26,27,28,29,30,31,32,33,34,35,36]
+blynk_LED = [37,38,39,40,41,42,43,44,45,46,47,48]
+Power_LED = 49
+Fan_ALL = 50
 
 
 class Hive(object):
@@ -110,35 +120,76 @@ def Search_for_fan_serial_port():
 def check_temp(fan,temp):
     global fans_flag,fan_serial
     for index,(fan_value,temp_value) in enumerate(zip(fan,temp)):
-        if not fans_flag[index]:
-            if fan_value > 60 or temp_value > 67:
-                fan_serial.write('%d,1\n'%index)
-                fans_flag[index] = 1
-        else:
-            if fan_value < 50 and temp_value < 70:
-                fan_serial.write('%d,0\n'%index)
-                fans_flag[index] = 0
+        blynk.virtual_write(blynk_Temp[index], temp_value)
+        blynk.virtual_write(blynk_Perc[index], fan_value)
+        if not fans_force_flag[index]:
+            if not fans_flag[index]:
+                if fan_value > 60 or temp_value > 67:
+                    # fan_serial.write('%d,1\n'%index)
+                    fans_flag[index] = 1
+                    blynk.virtual_write(blynk_LED[index], 1)
+            else:
+                if fan_value < 50 and temp_value < 70:
+                    # fan_serial.write('%d,0\n'%index)
+                    fans_flag[index] = 0
+                    blynk.virtual_write(blynk_LED[index], 0)
         
 
 
+@blynk.on("V*")
+def blynk_handle_vpins(pin, value):
+    global fans_force_flag,fan_serial
+    print("V{} value: {}".format(pin, value))
+    if pin == str(Power):
+        blynk.virtual_write(Power_LED, value)
+        # fan_serial.write('%s,%s\n'%(pin,value))
+    elif pin == str(Fan_ALL):
+        for i in range(len(fans_flag)):
+            fans_force_flag[i] = value
+            blynk.virtual_write(blynk_LED[i], value)
+            # fan_serial.write('%d,%s\n'%(i,value))
+    else:
+        fans_force_flag[int(pin)] = value
+        blynk.virtual_write(blynk_LED[int(pin)], value)
+        # fan_serial.write('%s,%s\n'%(pin,value))
+
+@blynk.on("connected")
+def blynk_connected():
+    blynk.sync_virtual(0,1,2,3,4,5,6,7,8,9,10,11,12,50)
+
+
+
 def main():
-    global last_time
+    global last_time , blynk
     cHive = Hive(sd.get_token())
     while True:
-        if time.time() - last_time > 60:
+        #   update blynk
+        blynk.run()
+
+
+        #   update HIVE
+        if time.time() - last_time > 10:
             last_time = time.time()
-            try:
-                data = cHive.get_worker_info(sd.get_farm_id(),sd.get_worker_id())["miners_stats"]["hashrates"]
-                data_SHB = data[0]
-                data_SHN = data[1]
-                fan_perc = data_SHN['fans'] + data_SHB['fans']
-                graphic_temp = data_SHN['temps'] + data_SHB['temps']
-                print(fan_perc,graphic_temp)
-                check_temp(fan_perc,graphic_temp)
-            except Exception as e:
-                print('error in main loop',e) 
+            # try:/
+            data = cHive.get_worker_info(sd.get_farm_id(),sd.get_worker_id())["miners_stats"]["hashrates"]
+            data_SHB = data[0]
+            data_SHN = data[1]
+            fan_perc = data_SHN['fans'] + data_SHB['fans']
+            graphic_temp = data_SHN['temps'] + data_SHB['temps']
+            
+            print(data_SHN['invalid_shares'])
+            SHB_invshare = [int(i) for i in data_SHB['invalid_shares']]
+            SHN_invshare = [int(i) for i in data_SHN['invalid_shares']]
+            invalid_share = SHB_invshare + SHN_invshare #sum([SHB_invshare,SHN_invshare])
+            # print(invalid_share)
+            # print(fan_perc,graphic_temp)
+            print(data)
+            # check_temp(fan_perc,graphic_temp)
+            
+            # except Exception as e:
+            #     print('error in main loop',e) 
 
 
 if __name__ == '__main__':
-    Search_for_fan_serial_port()
+    # Search_for_fan_serial_port()
     main()
